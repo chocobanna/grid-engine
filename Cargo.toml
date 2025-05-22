@@ -1,0 +1,7 @@
+[package]
+name = "grid-engine"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+sdl2 = { version = "0.37.0", features = ["gfx"] }
