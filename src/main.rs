@@ -1,41 +1,60 @@
-use sdl2::{pixels::Color, event::Event};
-use sdl2::gfx::primitives::DrawRenderer;
+mod camera;
+mod input;
+mod scene;
+mod renderer;
+
+use camera::Camera;
+use input::handle_input;
+use scene::Scene;
+use renderer::render;
+
+use sdl2::init;
+use sdl2::event::Event;
+use sdl2::mouse::MouseUtil;
 use std::time::Duration;
 
 fn main() {
-    let sdl = sdl2::init().unwrap();
-    let video = sdl.video().unwrap();
-    let window = video.window("Grid Engine", 800, 600)
+    let sdl        = init().unwrap();
+    let video      = sdl.video().unwrap();
+    let window     = video
+        .window("Grid Engine 3D", 800, 600)
         .position_centered()
         .build()
         .unwrap();
-    let mut canvas = window.into_canvas().build().unwrap();
-    let mut events = sdl.event_pump().unwrap();
+    let mut canvas     = window.into_canvas().build().unwrap();
+    let mut event_pump = sdl.event_pump().unwrap();
 
-    let mut offset = 0i16;
-    let mut dir = 1i16;
+    // capture mouse for relative motion & hide cursor
+    let mouse = sdl.mouse();
+    mouse.set_relative_mouse_mode(true);
+    mouse.show_cursor(false);
+    canvas.window_mut().set_grab(true);
 
-    loop {
-        for evt in events.poll_iter() {
-            if let Event::Quit { .. } = evt {
-                return;
+    let mut camera = Camera::new();
+    let scene      = Scene::cube();
+    let fov        = 256.0;
+
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => break 'running,
+                Event::MouseMotion { xrel, yrel, .. } => {
+                    // rotate camera: xrel -> yaw, yrel -> pitch
+                    camera.yaw   += xrel as f32 * camera.rot_speed;
+                    camera.pitch -= yrel as f32 * camera.rot_speed;
+                    // clamp pitch to straight up/down
+                    camera.pitch = camera.pitch.clamp(
+                        -std::f32::consts::FRAC_PI_2,
+                         std::f32::consts::FRAC_PI_2,
+                    );
+                }
+                _ => {}
             }
         }
 
-        // update position
-        offset += dir;
-        if offset > 200 { dir = -1; }
-        else if offset < -200 { dir = 1; }
+        handle_input(&mut camera, &event_pump.keyboard_state());
+        render(&mut canvas, &camera, &scene, fov);
 
-        // render
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-
-        let xs = [100i16 + offset, 400i16 + offset, 250i16 + offset];
-        let ys = [100i16, 100i16, 400i16];
-        canvas.filled_polygon(&xs, &ys, Color::RGB(255, 255, 255)).unwrap();
-
-        canvas.present();
-        ::std::thread::sleep(Duration::from_millis(16));
+        std::thread::sleep(Duration::from_millis(16));
     }
 }
