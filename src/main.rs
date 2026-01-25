@@ -1,3 +1,9 @@
 fn main() {
-    println!("Hello, world!");
+  startup();
+}
+
+fn startup() {
+  const VERSION: &str = env!("CARGO_PKG_VERSION");
+  println!("Grid Engine v{}",VERSION);
+
 }
