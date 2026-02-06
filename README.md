@@ -1,5 +1,4 @@
 # GridEngine
 
-# Goals :
-- Basic Rendering
-
+ideas:
+backend -vulkan backend with wayland compositor
