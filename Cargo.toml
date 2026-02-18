@@ -1,0 +1,8 @@
+[package]
+name = "grid-engine"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+#softbuffer = "0.4.8"
+winit = "0.30.12"
