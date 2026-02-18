@@ -5,4 +5,6 @@ edition = "2024"
 
 [dependencies]
 #softbuffer = "0.4.8"
+softbuffer_quickstart = "0.3.2"
 winit = "0.30.12"
+wgpu = "28.0.0"
