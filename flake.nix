@@ -22,10 +22,10 @@
             libxkbcommon
             libGL
 
-            xorg.libX11
-            xorg.libXcursor
-            xorg.libXi
-            xorg.libXrandr
+            libX11
+            libXcursor
+            libXi
+            libXrandr
           ];
 
           shellHook = ''
@@ -33,10 +33,10 @@
               pkgs.wayland
               pkgs.libxkbcommon
               pkgs.libGL
-              pkgs.xorg.libX11
-              pkgs.xorg.libXcursor
-              pkgs.xorg.libXi
-              pkgs.xorg.libXrandr
+              pkgs.libX11
+              pkgs.libXcursor
+              pkgs.libXi
+              pkgs.libXrandr
             ]}
           '';
         };
