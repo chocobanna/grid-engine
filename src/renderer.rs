@@ -4,7 +4,6 @@ use wgpu::*;
 use winit::{dpi::PhysicalSize, window::Window};
 
 pub struct Renderer {
-    window: Arc<Window>,
     surface: Surface<'static>,
     device: Device,
     queue: Queue,
@@ -12,7 +11,14 @@ pub struct Renderer {
     size: PhysicalSize<u32>,
 
     pipeline: RenderPipeline,
+    uniform_buffer: Buffer,
+    bind_group: BindGroup,
+
     start: Instant,
+
+    position: [f32; 2],
+    velocity: [f32; 2],
+    rotation: f32,
 }
 
 impl Renderer {
@@ -29,11 +35,11 @@ impl Renderer {
                 force_fallback_adapter: false,
             })
             .await
-            .expect("No suitable GPU adapter");
+            .unwrap();
 
         let (device, queue) = adapter
             .request_device(&DeviceDescriptor {
-                label: Some("device"),
+                label: None,
                 required_features: Features::empty(),
                 required_limits: Limits::default(),
                 memory_hints: MemoryHints::default(),
@@ -41,20 +47,13 @@ impl Renderer {
                 experimental_features: Default::default(),
             })
             .await
-            .expect("Failed to create device");
+            .unwrap();
 
         let caps = surface.get_capabilities(&adapter);
 
-        let format = caps
-            .formats
-            .iter()
-            .copied()
-            .find(|f| f.is_srgb())
-            .unwrap_or(caps.formats[0]);
-
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
-            format,
+            format: caps.formats[0],
             width: size.width,
             height: size.height,
             present_mode: PresentMode::Fifo,
@@ -66,19 +65,50 @@ impl Renderer {
         surface.configure(&device, &config);
 
         let shader = device.create_shader_module(ShaderModuleDescriptor {
-            label: Some("triangle shader"),
+            label: Some("shader"),
             source: ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+        });
+
+        let uniform_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("uniform buffer"),
+            size: 16,
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let bind_group_layout =
+            device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: None,
+            layout: &bind_group_layout,
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
         });
 
         let pipeline_layout =
             device.create_pipeline_layout(&PipelineLayoutDescriptor {
-                label: Some("pipeline layout"),
-                bind_group_layouts: &[],
+                label: None,
+                bind_group_layouts: &[&bind_group_layout],
                 immediate_size: 0,
             });
 
         let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-            label: Some("triangle pipeline"),
+            label: None,
             layout: Some(&pipeline_layout),
 
             vertex: VertexState {
@@ -93,17 +123,13 @@ impl Renderer {
                 entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
                 targets: &[Some(ColorTargetState {
-                    format,
+                    format: config.format,
                     blend: Some(BlendState::REPLACE),
                     write_mask: ColorWrites::ALL,
                 })],
             }),
 
-            primitive: PrimitiveState {
-                topology: PrimitiveTopology::TriangleList,
-                ..Default::default()
-            },
-
+            primitive: PrimitiveState::default(),
             depth_stencil: None,
             multisample: MultisampleState::default(),
             multiview_mask: None,
@@ -111,14 +137,18 @@ impl Renderer {
         });
 
         Self {
-            window,
             surface,
             device,
             queue,
             config,
             size,
             pipeline,
+            uniform_buffer,
+            bind_group,
             start: Instant::now(),
+            position: [0.0, 0.0],
+            velocity: [0.6, 0.45],
+            rotation: 0.0,
         }
     }
 
@@ -134,14 +164,50 @@ impl Renderer {
         self.surface.configure(&self.device, &self.config);
     }
 
+    fn update_physics(&mut self, dt: f32) {
+        self.position[0] += self.velocity[0] * dt;
+        self.position[1] += self.velocity[1] * dt;
+
+        let bounds = 0.8;
+
+        if self.position[0] > bounds || self.position[0] < -bounds {
+            self.velocity[0] *= -1.0;
+        }
+
+        if self.position[1] > bounds || self.position[1] < -bounds {
+            self.velocity[1] *= -1.0;
+        }
+
+        self.rotation += dt * 2.0;
+    }
+
     pub fn render(&mut self) {
         let frame = match self.surface.get_current_texture() {
-            Ok(frame) => frame,
+            Ok(f) => f,
             Err(_) => {
                 self.surface.configure(&self.device, &self.config);
                 return;
             }
         };
+
+        let dt = self.start.elapsed().as_secs_f32();
+        self.start = Instant::now();
+
+        self.update_physics(dt);
+
+        let mut uniform_data = [0f32; 4];
+        uniform_data[0] = self.position[0];
+        uniform_data[1] = self.position[1];
+        uniform_data[2] = self.rotation;
+
+        let bytes: &[u8] = unsafe {
+            std::slice::from_raw_parts(
+                uniform_data.as_ptr() as *const u8,
+                uniform_data.len() * 4,
+            )
+        };
+
+        self.queue.write_buffer(&self.uniform_buffer, 0, bytes);
 
         let view = frame
             .texture
@@ -149,31 +215,20 @@ impl Renderer {
 
         let mut encoder =
             self.device
-                .create_command_encoder(&CommandEncoderDescriptor {
-                    label: Some("render encoder"),
-                });
-
-        let time = self.start.elapsed().as_secs_f32();
-        let r = (time.sin() * 0.5 + 0.5) as f64;
+                .create_command_encoder(&CommandEncoderDescriptor { label: None });
 
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("render pass"),
+                label: None,
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     depth_slice: None,
                     ops: Operations {
-                        load: LoadOp::Clear(Color {
-                            r,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
+                        load: LoadOp::Clear(Color::BLACK),
                         store: StoreOp::Store,
                     },
                 })],
-
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,
                 timestamp_writes: None,
@@ -181,6 +236,7 @@ impl Renderer {
             });
 
             pass.set_pipeline(&self.pipeline);
+            pass.set_bind_group(0, &self.bind_group, &[]);
             pass.draw(0..3, 0..1);
         }
 

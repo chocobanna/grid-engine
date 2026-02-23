@@ -19,10 +19,7 @@ impl ApplicationHandler for App {
         if self.window.is_none() {
             let window = Arc::new(
                 event_loop
-                    .create_window(
-                        Window::default_attributes()
-                            .with_title("wgpu triangle"),
-                    )
+                    .create_window(Window::default_attributes().with_title("Bouncing Triangle"))
                     .unwrap(),
             );
 
@@ -43,14 +40,14 @@ impl ApplicationHandler for App {
             WindowEvent::CloseRequested => event_loop.exit(),
 
             WindowEvent::Resized(size) => {
-                if let Some(renderer) = &mut self.renderer {
-                    renderer.resize(size);
+                if let Some(r) = &mut self.renderer {
+                    r.resize(size);
                 }
             }
 
             WindowEvent::RedrawRequested => {
-                if let Some(renderer) = &mut self.renderer {
-                    renderer.render();
+                if let Some(r) = &mut self.renderer {
+                    r.render();
                 }
             }
 
