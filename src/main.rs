@@ -1,10 +1,16 @@
 mod engine;
 
-use engine::Engine;
+use engine::*;
 
 fn main() {
     Engine::new()
-        .title("Triangle Demo")
+        .title("Sprite Demo")
         .size(800, 600)
+        .sprite(
+            Sprite::triangle()
+                .position(0.0, 0.0)
+                .scale(0.4)
+                .color(1.0, 0.4, 0.2)
+        )
         .run();
 }

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use super::{config::Config, renderer::Renderer};
+use super::{renderer::Renderer, config::Config, sprite::Sprite};
+
 use winit::{
     application::ApplicationHandler,
-    dpi::PhysicalSize,
     event::WindowEvent,
     event_loop::ActiveEventLoop,
     window::{Window, WindowId},
@@ -11,14 +11,17 @@ use winit::{
 
 pub struct App {
     config: Config,
+    sprites: Vec<Sprite>,
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
 }
 
 impl App {
-    pub fn new(config: Config) -> Self {
+
+    pub fn new(config: Config, sprites: Vec<Sprite>) -> Self {
         Self {
             config,
+            sprites,
             window: None,
             renderer: None,
         }
@@ -26,22 +29,20 @@ impl App {
 }
 
 impl ApplicationHandler for App {
+
     fn resumed(&mut self, el: &ActiveEventLoop) {
+
         if self.window.is_none() {
+
             let window = Arc::new(
                 el.create_window(
                     Window::default_attributes()
                         .with_title(self.config.title.clone())
-                        .with_inner_size(PhysicalSize::new(
-                            self.config.width,
-                            self.config.height,
-                        )),
-                )
-                .unwrap(),
+                ).unwrap()
             );
 
             let renderer =
-                pollster::block_on(Renderer::new(window.clone()));
+                pollster::block_on(Renderer::new(window.clone(), &self.sprites));
 
             self.window = Some(window);
             self.renderer = Some(renderer);
@@ -52,16 +53,12 @@ impl ApplicationHandler for App {
         &mut self,
         el: &ActiveEventLoop,
         _: WindowId,
-        event: WindowEvent,
+        event: WindowEvent
     ) {
-        match event {
-            WindowEvent::CloseRequested => el.exit(),
 
-            WindowEvent::Resized(size) => {
-                if let Some(r) = &mut self.renderer {
-                    r.resize(size);
-                }
-            }
+        match event {
+
+            WindowEvent::CloseRequested => el.exit(),
 
             WindowEvent::RedrawRequested => {
                 if let Some(r) = &mut self.renderer {

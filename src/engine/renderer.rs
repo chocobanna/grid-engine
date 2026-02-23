@@ -1,21 +1,25 @@
 use std::sync::Arc;
 
 use wgpu::*;
-use winit::{dpi::PhysicalSize, window::Window};
+use winit::window::Window;
+
+use super::sprite::Sprite;
 
 pub struct Renderer {
+
     surface: Surface<'static>,
     device: Device,
     queue: Queue,
     config: SurfaceConfiguration,
-    size: PhysicalSize<u32>,
 
     pipeline: RenderPipeline,
+
+    sprites: Vec<Sprite>,
 }
 
 impl Renderer {
-    pub async fn new(window: Arc<Window>) -> Self {
-        let size = window.inner_size();
+
+    pub async fn new(window: Arc<Window>, sprites: &[Sprite]) -> Self {
 
         let instance = Instance::default();
         let surface = instance.create_surface(window.clone()).unwrap();
@@ -46,8 +50,8 @@ impl Renderer {
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: caps.formats[0],
-            width: size.width,
-            height: size.height,
+            width: 800,
+            height: 600,
             present_mode: PresentMode::Fifo,
             alpha_mode: caps.alpha_modes[0],
             view_formats: vec![],
@@ -72,8 +76,9 @@ impl Renderer {
                 immediate_size: 0,
             });
 
-        let pipeline = device.create_render_pipeline(
-            &RenderPipelineDescriptor {
+        let pipeline =
+            device.create_render_pipeline(&RenderPipelineDescriptor {
+
                 label: None,
                 layout: Some(&pipeline_layout),
 
@@ -100,38 +105,23 @@ impl Renderer {
                 multisample: MultisampleState::default(),
                 multiview_mask: None,
                 cache: None,
-            },
-        );
+            });
 
         Self {
             surface,
             device,
             queue,
             config,
-            size,
             pipeline,
+            sprites: sprites.to_vec(),
         }
-    }
-
-    pub fn resize(&mut self, size: PhysicalSize<u32>) {
-        if size.width == 0 || size.height == 0 {
-            return;
-        }
-
-        self.size = size;
-        self.config.width = size.width;
-        self.config.height = size.height;
-
-        self.surface.configure(&self.device, &self.config);
     }
 
     pub fn render(&mut self) {
+
         let frame = match self.surface.get_current_texture() {
-            Ok(frame) => frame,
-            Err(_) => {
-                self.surface.configure(&self.device, &self.config);
-                return;
-            }
+            Ok(f) => f,
+            Err(_) => return,
         };
 
         let view = frame.texture.create_view(&Default::default());
@@ -141,29 +131,32 @@ impl Renderer {
                 .create_command_encoder(&Default::default());
 
         {
-            let mut pass = encoder.begin_render_pass(
-                &RenderPassDescriptor {
+            let mut pass =
+                encoder.begin_render_pass(&RenderPassDescriptor {
+
                     label: None,
-                    color_attachments: &[Some(
-                        RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            depth_slice: None,
-                            ops: Operations {
-                                load: LoadOp::Clear(Color::BLACK),
-                                store: StoreOp::Store,
-                            },
+
+                    color_attachments: &[Some(RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        depth_slice: None,
+                        ops: Operations {
+                            load: LoadOp::Clear(Color::BLACK),
+                            store: StoreOp::Store,
                         },
-                    )],
+                    })],
+
                     depth_stencil_attachment: None,
                     occlusion_query_set: None,
                     timestamp_writes: None,
                     multiview_mask: None,
-                },
-            );
+                });
 
             pass.set_pipeline(&self.pipeline);
-            pass.draw(0..3, 0..1);
+
+            for _sprite in &self.sprites {
+                pass.draw(0..3, 0..1);
+            }
         }
 
         self.queue.submit(Some(encoder.finish()));
