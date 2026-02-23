@@ -1,17 +1,28 @@
 use std::sync::Arc;
 
-use crate::renderer::Renderer;
+use super::{config::Config, renderer::Renderer};
 use winit::{
     application::ApplicationHandler,
+    dpi::PhysicalSize,
     event::WindowEvent,
     event_loop::ActiveEventLoop,
     window::{Window, WindowId},
 };
 
-#[derive(Default)]
 pub struct App {
+    config: Config,
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
+}
+
+impl App {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            window: None,
+            renderer: None,
+        }
+    }
 }
 
 impl ApplicationHandler for App {
@@ -20,12 +31,17 @@ impl ApplicationHandler for App {
             let window = Arc::new(
                 el.create_window(
                     Window::default_attributes()
-                        .with_title("Bouncing Triangle"),
+                        .with_title(self.config.title.clone())
+                        .with_inner_size(PhysicalSize::new(
+                            self.config.width,
+                            self.config.height,
+                        )),
                 )
                 .unwrap(),
             );
 
-            let renderer = pollster::block_on(Renderer::new(window.clone()));
+            let renderer =
+                pollster::block_on(Renderer::new(window.clone()));
 
             self.window = Some(window);
             self.renderer = Some(renderer);

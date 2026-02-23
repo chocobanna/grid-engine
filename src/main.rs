@@ -1,14 +1,10 @@
-mod app;
-mod renderer;
+mod engine;
 
-use app::App;
-use winit::event_loop::EventLoop;
+use engine::Engine;
 
 fn main() {
-    env_logger::init();
-
-    let event_loop = EventLoop::new().unwrap();
-    let mut app = App::default();
-
-    event_loop.run_app(&mut app).unwrap();
+    Engine::new()
+        .title("Triangle Demo")
+        .size(800, 600)
+        .run();
 }
