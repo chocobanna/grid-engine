@@ -7,33 +7,31 @@ struct Uniforms {
 @group(0) @binding(0)
 var<uniform> u: Uniforms;
 
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
+struct Out {
+    @builtin(position) pos: vec4<f32>,
 };
 
 @vertex
-fn vs_main(@builtin(vertex_index) i: u32) -> VertexOutput {
+fn vs_main(@builtin(vertex_index) i: u32) -> Out {
 
-    var pos = array<vec2<f32>,3>(
+    var verts = array<vec2<f32>,3>(
         vec2<f32>(0.0,0.2),
         vec2<f32>(-0.2,-0.2),
         vec2<f32>(0.2,-0.2)
     );
 
-    let p = pos[i];
+    let p = verts[i];
 
     let c = cos(u.rotation);
     let s = sin(u.rotation);
 
-    let rotated = vec2<f32>(
+    let r = vec2<f32>(
         p.x * c - p.y * s,
         p.x * s + p.y * c
     );
 
-    var out: VertexOutput;
-
-    out.position = vec4<f32>(rotated + u.offset,0.0,1.0);
-
+    var out: Out;
+    out.pos = vec4<f32>(r + u.offset,0.0,1.0);
     return out;
 }
 

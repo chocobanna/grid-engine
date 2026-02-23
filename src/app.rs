@@ -15,12 +15,14 @@ pub struct App {
 }
 
 impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    fn resumed(&mut self, el: &ActiveEventLoop) {
         if self.window.is_none() {
             let window = Arc::new(
-                event_loop
-                    .create_window(Window::default_attributes().with_title("Bouncing Triangle"))
-                    .unwrap(),
+                el.create_window(
+                    Window::default_attributes()
+                        .with_title("Bouncing Triangle"),
+                )
+                .unwrap(),
             );
 
             let renderer = pollster::block_on(Renderer::new(window.clone()));
@@ -32,12 +34,12 @@ impl ApplicationHandler for App {
 
     fn window_event(
         &mut self,
-        event_loop: &ActiveEventLoop,
+        el: &ActiveEventLoop,
         _: WindowId,
         event: WindowEvent,
     ) {
         match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => el.exit(),
 
             WindowEvent::Resized(size) => {
                 if let Some(r) = &mut self.renderer {
@@ -54,8 +56,8 @@ impl ApplicationHandler for App {
             _ => {}
         }
 
-        if let Some(window) = &self.window {
-            window.request_redraw();
+        if let Some(w) = &self.window {
+            w.request_redraw();
         }
     }
 }
