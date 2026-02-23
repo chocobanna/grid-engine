@@ -6,3 +6,4 @@ How to start (at least on nixos):
 
 Current plan : 
 - develop an abstraction layer for wgpu for 3d graphics
+- Rust / WGSL only
