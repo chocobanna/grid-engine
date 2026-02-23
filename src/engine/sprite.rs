@@ -1,4 +1,5 @@
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct Sprite {
     pub vertices: Vec<[f32; 2]>,
     pub position: [f32; 2],
@@ -28,6 +29,7 @@ impl Sprite {
         self
     }
 
+    #[allow(dead_code)]
     pub fn rotation(mut self, r: f32) -> Self {
         self.rotation = r;
         self

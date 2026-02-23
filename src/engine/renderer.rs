@@ -10,6 +10,8 @@ pub struct Renderer {
     surface: Surface<'static>,
     device: Device,
     queue: Queue,
+
+    #[allow(dead_code)]
     config: SurfaceConfiguration,
 
     pipeline: RenderPipeline,
