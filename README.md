@@ -7,3 +7,8 @@ How to start (at least on nixos):
 Current plan : 
 - develop an abstraction layer for wgpu for 3d graphics
 - Rust / WGSL only
+
+Guides :
+- https://github.com/Foxicution/wgpu-template
+- https://github.com/Foxicution/wgpu-template?tab=readme-ov-file
+- https://github.com/w4ngzhen/wgpu_winit_example# <- primary resource
