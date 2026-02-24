@@ -6,6 +6,8 @@ pub struct Sprite {
     pub rotation: f32,
     pub scale: f32,
     pub color: [f32; 3],
+
+    pub velocity: [f32; 2],
 }
 
 impl Sprite {
@@ -21,11 +23,17 @@ impl Sprite {
             rotation: 0.0,
             scale: 1.0,
             color: [1.0, 1.0, 1.0],
+            velocity: [0.0, 0.0],
         }
     }
 
     pub fn position(mut self, x: f32, y: f32) -> Self {
         self.position = [x, y];
+        self
+    }
+
+    pub fn velocity(mut self, x: f32, y: f32) -> Self {
+        self.velocity = [x, y];
         self
     }
 
