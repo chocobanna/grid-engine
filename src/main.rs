@@ -1,1 +1,5 @@
-mod engine;
+mod engine::app;
+
+fn main() {
+    app::App::run();
+}
