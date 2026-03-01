@@ -1,19 +1,29 @@
+use std::sync::Arc;
+
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes, WindowId};
 
+use super::renderer::Renderer;
+
 #[derive(Default)]
 pub struct App {
-    window: Option<Window>,
+    window: Option<Arc<Window>>,
+    renderer: Option<Renderer>,
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let attributes = WindowAttributes::default()
-            .with_title("Grid Engine");
+        let window = Arc::new(
+            event_loop
+                .create_window(WindowAttributes::default().with_title("WGPU Window"))
+                .unwrap(),
+        );
 
-        let window = event_loop.create_window(attributes).unwrap();
+        let renderer = pollster::block_on(Renderer::new(window.clone()));
+
+        self.renderer = Some(renderer);
         self.window = Some(window);
     }
 
@@ -24,13 +34,18 @@ impl ApplicationHandler for App {
         event: WindowEvent,
     ) {
         match event {
-            WindowEvent::CloseRequested => {
-                println!("Close button pressed — exiting.");
-                event_loop.exit();
+            WindowEvent::CloseRequested => event_loop.exit(),
+
+            WindowEvent::Resized(size) => {
+                if let Some(renderer) = &mut self.renderer {
+                    renderer.resize(size);
+                }
             }
 
             WindowEvent::RedrawRequested => {
-                // Render here
+                if let Some(renderer) = &mut self.renderer {
+                    renderer.render();
+                }
 
                 if let Some(window) = &self.window {
                     window.request_redraw();
