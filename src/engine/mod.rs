@@ -1,2 +1,2 @@
-mod renderer;
-mod app;
+//mod renderer;
+pub mod app;
