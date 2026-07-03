@@ -4,8 +4,6 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-#wgpu = "28.0.0"
-#winit = "0.30.12"
-#pollster = "0.4.0"
-#env_logger = "0.11"
-#log = "0.4"
+pixels = "0.17.1"
+winit = { version = "0.30.13", default-features = false, features = ["x11", "rwh_06"] }
+wgpu = "29.0.3"
