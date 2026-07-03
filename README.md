@@ -5,8 +5,7 @@ How to start (at least on nixos):
 - cargo run
 
 Current plan : 
-- develop an abstraction layer for wgpu for 3d graphics
-- Rust / WGSL only
+- switch to own renderer to improve performance on a single thread.
 
 Guides :
 - https://github.com/Foxicution/wgpu-template
